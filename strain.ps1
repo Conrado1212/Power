@@ -25,7 +25,7 @@ Function Invoke-Keep() {
 
     #$isEven = {param($num) $num % 2 -eq 0}
 
-    return return $Data | Where-Object {& $Predicate $_}
+     return $Data | Where-Object {& $Predicate $_}
    # Throw "Please implement this function"
 }
 
@@ -56,7 +56,7 @@ Function Invoke-Discard() {
         [ScriptBlock]$Predicate
     )
    
-    return return $Data | Where-Object {-not(& $Predicate $_)}
+     return $Data | Where-Object {-not(& $Predicate $_)}
    # Throw "Please implement this function"
 }
 
