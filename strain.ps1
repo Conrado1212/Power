@@ -25,59 +25,11 @@ Function Invoke-Keep() {
 
     #$isEven = {param($num) $num % 2 -eq 0}
 
-    $result = @()
-    foreach($data in $Data){
-    #  Write-Host "Test   $data type: $($data.GetType().Name))"
-      if($data -is [array]){
-          $filtred =@()
-          foreach($subData in $data){
-            if(& $Predicate  $subData){ 
-                $filtred += $subData
-            }
-          }
-          if($filtred.count -gt 0){
-            $result += ,$filtred
-          }
-      }else{
-          if(& $Predicate  $data){
-              $result += $data
-          }
-      }
-        
-    }
-    if($result.count -eq 0){
-        return $null
-    }
-    return $result
+    return return $Data | Where-Object {& $Predicate $_}
    # Throw "Please implement this function"
 }
 
 
-#$IsEven = { param($num) $num % 2 -eq 0 }
-#Invoke-Keep -Data 4 -Predicate $IsEven
-
-#Invoke-Keep -Data @(
- #   @(1, 2, 3),
- #   @(5, 4, 2),
- #   @(5, 1, 3),
- #   @(2, 8, 7),
- #   @(1, 5, 4),
- #   @(2, 2, 9),
- #   @(1, 1, 4)
-#) -Predicate $IsEven
-$global:SumOverTen = { param($arr) ($arr | Measure-Object -Sum).Sum -gt 10 }
-
-$data = @(
-    @(1, 2, 3),
-    @(5, 4, 2),
-    @(5, 1, 3),
-    @(2, 8, 7),
-    @(1, 5, 4),
-    @(2, 2, 9),
-    @(1, 1, 4)
-)
-
- Invoke-Keep -Data $data -Predicate $global:SumOverTen
 
 Function Invoke-Discard() {
     <#
@@ -103,21 +55,8 @@ Function Invoke-Discard() {
         [Object[]]$Data,
         [ScriptBlock]$Predicate
     )
-    $result = @()
-    
-   <#
-   foreach($data in $Data){
-        Write-Host "Test   $data type: $($data.GetType().Name))"
-        if($data -is [array]){
-            foreach($subData in $data){
-              if(& $Predicate  $subData){
-                  $result += $subData
-              }
-            }
-        }
-    }
-   #> 
-    return $result
+   
+    return return $Data | Where-Object {-not(& $Predicate $_)}
    # Throw "Please implement this function"
 }
 
