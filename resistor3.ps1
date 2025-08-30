@@ -36,17 +36,45 @@ Function Get-ResistorLabel() {
         # Write-Output $colo.IndexOf($color.ToLower())
          $number += $colo.IndexOf($color.ToLower())
     }
+    Write-Host $number
+    $Colors.Length
+    If($Colors.Length -ge 3){
     $multi = $colo.indexOf($Colors[2])
-   # Write-Host "test multi" $multi
+    $multi
+    }
+    If($Colors.Length -ge 4){
     $tolCol = $Colors[3].ToLower()
     $tol = $toleranceMap[$tolCol]
+    $val = "%"
+    $plusik =" ±"
+    }
+    #Write-Host "test multi" $multi
+    Write-Host "[Line 50] $tol"
+    $multi
     $result = [math]::Pow(10, $multi)
-   # Write-output $tol 
-    return $number +" ohms ±"+ $result * $tol+"%"
+    Write-Host "[Line 52] $result"
+    #Write-output $tol 
+    $calc = [int]$number * $result
+    $calc
+    if($calc -lt 1000){
+        $text = "ohms"
+    }elseif($calc -ge 1000){
+        $text = "kiloohms"
+        $calc = $calc/1000
+    }
+    return $calc.ToString() + " $text"+$plusik+ $tol +$val
 
     Throw "Please implement this function"
 }
 
 #Get-ResistorLabel -Colors @("orange", "orange", "black", "red")
 
-Get-ResistorLabel -Colors @("blue", "grey", "brown", "violet")
+#Get-ResistorLabel -Colors @("blue", "grey", "brown", "violet")
+
+#Get-ResistorLabel -Colors @("red", "black", "red", "green")
+
+#Get-ResistorLabel -Colors @("black")
+
+Get-ResistorLabel -Colors @("orange", "orange", "yellow", "black", "brown")
+
+#zmienic uzwgldniajac tablice 
