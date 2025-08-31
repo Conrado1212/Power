@@ -32,18 +32,21 @@ Function Get-ResistorLabel() {
         "gold"   = 5
         "silver" = 10
     }
-    foreach($color in $Colors[0..1]){
+    $value =  $Colors.length -3
+    $multiValue = $Colors.length -2
+    $last =$Colors.length-1
+    foreach($color in $Colors[0..$value]){
         # Write-Output $colo.IndexOf($color.ToLower())
          $number += $colo.IndexOf($color.ToLower())
     }
     Write-Host $number
     $Colors.Length
     If($Colors.Length -ge 3){
-    $multi = $colo.indexOf($Colors[2])
+    $multi = $colo.indexOf($Colors[$multiValue])
     $multi
     }
     If($Colors.Length -ge 4){
-    $tolCol = $Colors[3].ToLower()
+    $tolCol = $Colors[$last].ToLower()
     $tol = $toleranceMap[$tolCol]
     $val = "%"
     $plusik =" ±"
@@ -55,13 +58,17 @@ Function Get-ResistorLabel() {
     Write-Host "[Line 52] $result"
     #Write-output $tol 
     $calc = [int]$number * $result
-    $calc
+    Write-Host "[Line 61] $calc" 
     if($calc -lt 1000){
         $text = "ohms"
+    }elseif($calc -ge 1000000){
+        $text = "megaohms"
+        $calc = $calc/1000000
     }elseif($calc -ge 1000){
         $text = "kiloohms"
         $calc = $calc/1000
     }
+    
     return $calc.ToString() + " $text"+$plusik+ $tol +$val
 
     Throw "Please implement this function"
@@ -75,6 +82,8 @@ Function Get-ResistorLabel() {
 
 #Get-ResistorLabel -Colors @("black")
 
-Get-ResistorLabel -Colors @("orange", "orange", "yellow", "black", "brown")
+#Get-ResistorLabel -Colors @("orange", "orange", "yellow", "black", "brown")
 
 #zmienic uzwgldniajac tablice 
+
+Get-ResistorLabel -Colors @("red", "green", "yellow", "yellow", "brown")
