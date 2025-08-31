@@ -18,16 +18,14 @@ Function Invoke-FlattenArray() {
         [System.Object[]]$Array
     )
     
-    $result = @()
-    foreach($item in $Array){
-        if($item -is [System.Collections.IEnumerable] -and -not($item -is [string])){
-            $result +=$item
-        }elseif($item -ne $null){
-            $result +=$item
+    $Array | foreach-Object{
+        if($_ -is [System.Array]){
+            Invoke-FlattenArray -Array $_
+        }elseif($_ -ne $null){
+            $_
         }
     }
-    return $result
-    Throw "Please implement this function"
+    #Throw "Please implement this function"
 }
 
 #Invoke-FlattenArray -Array @()
