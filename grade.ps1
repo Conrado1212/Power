@@ -26,58 +26,29 @@
 #>
 
 class Student {
-    Student() {
-        
+    [int]$Grade
+    [string]$Name
+    Student([int]$Grade, [string]$Name) {
+        $this.Grade = $Grade
+        $this.Name = $Name
     }
 }
-
 class Roster {
-    [hashtable]$Grades
+    [Student[]]$Students
     Roster() {
-       $this.Grades =@{}
+        $this.Students = @()
     }
-    [bool]AddStudent([int]$grade, [string]$name){
-        foreach($student in $this.Grades.Values){
-            if($student -contains $name){
-                retunr $false
-            }
+    [bool] AddStudent([int]$Grade, [string]$Name) {
+        if (-not ($this.Students | ? Name -eq $Name)) {
+            $this.Students += [Student]::new($Grade, $Name)
+            return $true
         }
-        if($this.Grades.ContainsKey($grade)){
-            $this.Grades[$grade] +=$name
-        }else{
-            $this.Grades[$grade] =@($name)
-        }
-        $this.Grades[$grade] = $this.Grades[$grade] | Sort-Object
-        return $true
+        return $false
     }
-    [array]GetRoster(){
-        $result =@()
-        foreach($grade in ($this.Grades.Keys | Sort-Object)){
-            foreach($name in $this.Grades[$grade]){
-                $result += [PSCustomObject]@{
-                    Name = $name
-                }
-            }
-        }
-            return $result
-        
-
+    [Student[]] GetRoster() {
+        return $this.Students | Sort-Object Grade, Name
     }
-    [array]GetRoster([int]$grade) {
-        if ($this.Grades.ContainsKey($grade)) {
-            return $this.Grades[$grade] | Sort-Object | ForEach-Object {
-                [pscustomobject]@{ Name = $_ }
-            }
-        } else {
-            return @()
-        }
+    [Student[]] GetRoster([int]$Grade) {
+        return $this.Students | ? Grade -eq $Grade | Sort-Object Name
     }
-    
 }
-
-$roster = [Roster]::new()
-    $roster.AddStudent(1,'Billy')
-    $roster.AddStudent(1,'Josh')
-    $roster.AddStudent(2,'Allison')
-    $roster.GetRoster()
-    $roster.GetRoster(2)
