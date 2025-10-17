@@ -14,16 +14,12 @@ function add-dataToExcel{
         
         if(Test-Path $name){
             Remove-Item $name
-            $workbook = $excel.Workbooks.Add()
-            $test = $workbook.Worksheets.Item(1);
-            $test.Name = "KKTest";
-        }else{
-            $workbook = $excel.Workbooks.Add()
-            $test = $workbook.Worksheets.Item(1);
-            $test.Name = "KKTest";
+            
         }
+         $workbook = $excel.Workbooks.Add()
+         $test = $workbook.Worksheets.Item(1);
+         $test.Name = "KKTest";
 
-    
         $test.Cells.Item(1,1) ="Date"
         $test.Cells.Item(1,2) = "Hour"
         $test.Cells.Item(1,3) = "Name"
@@ -41,7 +37,8 @@ function add-dataToExcel{
         }
         $workbook.SaveAs("$name")
         $excel.Quit()
-
+  [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+    Write-Host "File save $name"
     }
 
     add-dataToExcel
