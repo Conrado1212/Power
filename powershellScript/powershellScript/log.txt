@@ -1,0 +1,27 @@
+27-10-2025 12:08:57 - INFO - Starting BPS group migration
+27-10-2025 12:08:58 - INFO - [line 128] Number of groups in the environment1: 40
+27-10-2025 12:08:58 - INFO - [Line 133] Number of groups in environment2: 40
+27-10-2025 12:08:58 - INFO - [Line 137] Groups that are only in environment1
+27-10-2025 12:08:58 - INFO - [Line 141] Number of groups other than in environment2: 1
+27-10-2025 12:08:58 - INFO - [Line 153] Groups that are only in environment2
+27-10-2025 12:08:58 - INFO - Number of groups other than in environment1 : 1
+27-10-2025 12:08:58 - INFO - [Line 187] Number of missing groups: 1
+27-10-2025 12:09:01 - INFO - [Line 436] b.testy@webcon.com not found in env2
+27-10-2025 12:09:02 - INFO - [Line 467] {
+  "bpsId": "b.testy@webcon.com",
+  "name": "b testy",
+  "email": "b.testy@webcon.com"
+}
+27-10-2025 12:09:02 - INFO - [Line 519] Synchronizing user: b.testy@webcon.com
+27-10-2025 12:09:10 - INFO - [Line 175] Group Params {
+  "bpsId": "testkkk1974@webcon.com",
+  "name": "testkkk1974",
+  "email": "testkkk1974@webcon.com",
+  "members": [
+    {
+      "bpsId": "b.testy@webcon.com"
+    }
+  ]
+}
+27-10-2025 12:09:10 - INFO - [Line 178] Group created testkkk1974@webcon.com
+27-10-2025 12:09:11 - INFO - [Line 197] Groups synchronized

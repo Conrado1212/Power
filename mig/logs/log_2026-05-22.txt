@@ -1,0 +1,5 @@
+22-05-2026 20:10:35 - INFO - This PowerShell script will migrate your data from xlsx or table to System
+22-05-2026 20:10:36 - WARNING - Plik nie istnieje: test wiersz 1
+22-05-2026 20:10:36 - WARNING - Plik nie istnieje: C:\Users\k.krawczyk\Desktop\xd\fizyk\ksef\WEBCON-KSeF-Connector-instrukcja-instalacji.pdf  wiersz 1
+22-05-2026 20:10:36 - WARNING - Plik nie istnieje: test wiersz 2
+22-05-2026 20:10:38 - WARNING - Plik nie istnieje: \\nas\Public\k.krawczyk\ZGL_2307_2023\sample (5).pdf  wiersz 2

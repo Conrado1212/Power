@@ -1,0 +1,580 @@
+
+<#pobranie zmiennych zrodlowe #>
+
+$CLIENT_ID = ""
+
+$CLIENT_SECRET = ""
+#$baseUrl = "https://kt01.webcon.pl"
+#$baseUrl = "https://bpsod.webcon.pl/5675"
+$baseUrl = "https://bpsod.webcon.pl/5774"
+#$response1 = Get-Group -baseUrl $baseUrl
+
+    if(-not $baseUrl){
+     $baseUrl = Read-Host "[Line 16] Write your baseUrl (example. https://example.com)"
+    }
+function Get-AccessToken{
+    #parametr base url ktory podaje user
+    #pobranei clientId oraz cleitnsecret jako zmiennej srodwoiskowej 
+        param(
+            [string]$baseUrl,
+            [string]$clientId,
+            [string]$clientSecret
+        )
+        if ([string]::IsNullOrWhiteSpace($clientId)) {
+
+        $clientId = Read-Host "[Line 28] Write  CLIENT_ID"
+        }else{
+         Write-Host  "[Line 30] Variable clientId value retrieved"
+        }
+
+        if ([string]::IsNullOrWhiteSpace($clientSecret)) {
+             $clientSecret = Read-Host "Write CLIENT_SECRET"
+        }else{
+          Write-Host   "[Line 36] Variable clientSecret value retrieved"
+        }
+       
+        
+        #url metody uwierzytelnienia 
+        $tokenUrl = "$baseUrl/api/oauth2/token"
+        #przekazanei body
+        $body =@{
+            grant_type = "client_credentials"
+            client_id = $clientId
+            client_secret = $clientSecret
+        }
+        try{
+            #proba otrzymanai accesstoekntu za pomoca wylownaia invoke-RestMethod 
+            $respone = Invoke-RestMethod -Method Post -Uri $tokenUrl -Body $body -ContentType "application/x-www-form-urlencoded" 
+            return $respone.access_token
+        }catch{
+            #obsluga bledu 
+            Write-Error "[Line 54] Error authentication: $_"
+            return $null
+        }
+} 
+
+function Get-Group{
+    param(
+        [string]$baseUrl,
+        [string]$clientId,
+        [string]$clientSecret
+    )
+    $token = Get-AccessToken -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret
+
+    if (-not $token) {
+        Write-Error "[Line 68] No token"
+        return
+    }
+
+    $headers = @{
+    Authorization = "Bearer $token"
+    }
+
+    $apiGroup = "$baseUrl/api/data/v6.0/admin/groups?size=30000"
+    
+    try{
+         $response = Invoke-RestMethod -Method Get -Uri $apiGroup  -Headers $headers
+         #$response | ConvertTo-Json -Depth 10
+       # Write-Host $response.groups
+       # Write-Host "Type getgroup " $response.groups.GetType()
+         return $response.groups
+    }catch{
+         Write-Error "[Line 85] Error : $_"
+         return $null
+    }
+
+}
+
+$response = @(Get-Group -baseUrl $baseUrl -clientId $CLIENT_ID -clientSecret $CLIENT_SECRET)
+Write-Host "[line 92] Liczba grup w srodowisku 1: $($response.Count)"
+#$response   | Format-Table bpsId, name, email   # zakomentowanie wypisanie grup srodowisko z ktorego chce migrowac
+
+
+
+$CLIENT_ID1 = ""
+
+
+$CLIENT_SECRET1 = ""
+
+#$baseUrl1 = "https://bpsod.webcon.pl/5673"
+$baseUrl1 = "https://bpsod.webcon.pl/5775"
+$response1 = @(Get-Group -baseUrl $baseUrl1 -clientId $CLIENT_ID1 -clientSecret $CLIENT_SECRET1)
+Write-Host "[Line 106] Liczba grup w srodowisku 2: $($response1.Count)"
+#$response1 | Format-Table bpsId, name, email   zakomentowanie wypisanie grup srodowisko do ktorego chce migrowac
+
+
+Write-Host '[Line 110] Only in one'
+#$bps2 = $response1 | Select-Object -ExpandProperty bpsId
+#$bps2 | ForEach-Object { Write-Host $_ }
+$onlyIn1env = @($response | Where-Object { $_.bpsId -notin ($response1.bpsId) }) #powinoo byc bpsId ($response1.bpsId)
+$onlyIn1env | Format-Table bpsId, name, email
+
+#Write-Host "Typ: $($onlyIn1env.GetType().Name)"
+
+Write-Host "[Line 118] Liczba grup innych niz w srodowisku 2: $($onlyIn1env.Count)"
+
+#$onlyIn1env | Format-Table bpsId, name, email
+
+
+<#Write-Host 'Only in two'
+$onlyIn2env = $response1 | Where-Object { $_.bpsId -notin ($response.bpsId) }
+Write-Host "Liczba grup innych niz w srodowisku 1 : $($onlyIn2env.Count)"
+$onlyIn1env 
+Write-Host 'common'
+$commonGroups = $response | Where-Object { $_.bpsId -in ($response1.bpsId) }
+Write-Host "Liczba grup wspolnych : $($commonGroups.Count)"
+$commonGroups
+#>
+#$response = Get-Group -baseUrl $baseUrl -clientId "client_id_1" -clientSecret "secret_1"
+#$response1 = Get-Group -baseUrl $baseUrl1 -clientId "client_id_2" -clientSecret "secret_2"
+
+function New-Group{
+     param(
+     [string]$baseUrl,
+     [string]$clientId,
+     [string]$clientSecret,
+     [array]$groupToCreate
+     )
+    $token = Get-AccessToken -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret
+
+      if (-not $token) {
+        Write-Error "[Line 145] No token"
+        return
+    }
+
+    $headers = @{
+    Authorization = "Bearer $token"
+    "Content-Type" = "application/json"
+    }
+
+     $createGroupUrl = "$baseUrl/api/data/v6.0/admin/groups"
+    foreach($group in $groupToCreate){
+        if(-not $group.email){
+            $group.email = $group.bpsId
+        }
+        $body =@{
+            bpsId = $group.bpsId
+            name = $group.name
+            email = $group.email
+            } | ConvertTo-Json -Depth 3
+            
+            $body | Write-Host
+
+            try{
+            Invoke-RestMethod -Method Post -Uri $createGroupUrl -Body $body  -Headers $headers
+            Write-Host "Line 169 Group created $($group.bpsId)" 
+        }catch{
+        Write-Error "[Line 171] Error : $_"
+        return $null
+    }
+    }  
+}
+
+
+if($onlyIn1env.count -gt 0){
+    Write-Host "[Line 179] Number of missing groups: $($onlyIn1env.Count)"
+    $userInput = Read-Host "[Line 180] Do you want to create the missing groups in second envirounment? (Y/N)"
+    if($userInput -eq "Y"){
+        New-Group -baseUrl $baseUrl1 -clientId $CLIENT_ID1 -clientSecret $CLIENT_SECRET1  -groupToCreate $onlyIn1env
+        $maxRetries = 5
+        $retryCount =0
+    do{
+    $response1 = Get-Group -baseUrl $baseUrl1 -clientId $CLIENT_ID1 -clientSecret $CLIENT_SECRET1
+    $missingGroups = $onlyIn1env | Where-Object { $_.bpsId -notin $response1.bpsId}
+    if($missingGroups.Count -eq 0){     
+        Write-Host "[Line 189] Groups synchronized"
+        break
+    }else{
+        Write-Host "[Line 192] Waiting for sync ($retryCount/$maxRetries)  miss group $($missingGroups.Count)"
+        Start-Sleep -Seconds 5
+        $retryCount++
+    }
+}while($retryCount -lt $maxRetries)
+
+
+if ($missingGroups.Count -gt 0) {
+    Write-Warning "[Line 200] Some groups not ready after $($maxRetries * 5) sec."
+}
+    }else{
+        Write-Host "[Line 203] Group creation was skipped"
+    }
+}
+
+
+
+
+
+
+
+
+
+
+function Get-Member-From-Group{
+     param(
+     [string]$baseUrl,
+     [string]$clientId,
+     [string]$clientSecret,
+     [array]$checkGroupMember
+     )
+     $token = Get-AccessToken -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret
+
+      if (-not $token) {
+        Write-Error "[Line 226] No token"
+        return
+    }
+
+    $headers = @{
+    Authorization = "Bearer $token"
+    "Content-Type" = "application/json"
+    }
+     # miec wszystkie grupy i sprawdzic ich czlonkow z jednego srodwiska i drugiego $response 
+    $allGroup = Get-Group -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret
+    if(-not $allGroup){
+        Write-Error "[Line 237] No group from $baseUrl"
+        return
+    }
+    $result = @()
+     foreach($group in $checkGroupMember){
+        $groupID = $group.bpsId
+        $isGroup = $allGroup | Where-Object {$_.bpsId -eq $groupID}
+        if(-not $isGroup){
+            Write-Warning "[Line 245] Group $groupID not exist in $baseUrl skip"
+            continue
+        }
+      # $groupID |  Write-Host 
+         $memberUrl = "$baseUrl/api/data/v6.0/admin/groups/$groupID"
+            try{
+            $response = Invoke-RestMethod -Method Get -Uri $memberUrl -Headers $headers
+           # Write-Host "Group member from $($groupID) -> $($response.members)"  narazie komentarz wypisuje grupe oraz jej czlonkow
+            $result +=[PSCustomObject]@{
+                bpsId = $groupID
+                members =$response.members
+            }
+        }catch{
+        Write-Error "[Line 258] Error fetching members for group $groupId : $_"
+        return $null
+    }
+    }  
+    return $result
+}
+
+$userInputM = Read-Host "[Line 265] Do you want to check members? (Y/N)"
+if($userInputM -eq "Y"){
+     $groupMemberenv1  = Get-Member-From-Group -baseUrl $baseUrl -clientId $CLIENT_ID -clientSecret $CLIENT_SECRET  -checkGroupMember $response
+     
+     
+     Write-Host "[Line 270] Grupy z zrodlowego: $($groupMemberenv1 | ConvertTo-Json -Depth 5)"
+
+     $groupMemberenv2 = Get-Member-From-Group -baseUrl $baseUrl1 -clientId $CLIENT_ID1 -clientSecret $CLIENT_SECRET1 -checkGroupMember $response1
+     
+    Write-Host "[Line 274] Grupy z docelowego: $($groupMemberenv2 | ConvertTo-Json -Depth 5)"
+
+    }else{
+        Write-Host "[Line 277] Check member creation was skipped"
+    }
+
+function Compare-Group-Members{
+    # Pobranioe grup oraz ich czlonkow ze pomoca parametrow
+    param(
+        [array]$groupMemberenv1,
+        [array]$groupMemberenv2
+    )
+    #iniclaizuje dwie tablice 
+    $result = @()
+    $result2 = @()
+#iteruje po 1 grupie i sprawdzam czy nie ma innych grup w drugim srodoiwsku 
+    foreach($group1 in $groupMemberenv1){
+        $groupID = $group1.bpsId
+        $group2 = $groupMemberenv2 | Where-Object {$_.bpsId -eq $groupID}
+
+        if(-not $group2){
+            Write-Host "[Line 295] Group $groupId not found in second environment"
+            continue
+        }
+        # pobranie czlonkow grup z 1  
+       $members1 = $group1.members
+       
+        Write-Host  "[Line 301] Members in ev1 for group $groupID" 
+        #sprawdzenie ilosci czlonkow grup
+        if($members1.count -eq 0){
+            Write-Host  "[Line 304] No members"
+        }else{
+              #iteruje po members wypoisujac kazdego czlonka grupy 
+           $members1 | foreach-Object {Write-Host " - '$($_.bpsId)'"}
+             #maybe tak   $members1 | foreach-Object {Write-Host " - $($_.name) <$($_.email)> [$($_.bpsId)]"}
+          #maybe tak 
+         #   $members1 | foreach-Object {$_ | ConvertTo-Json -Depth 3 }
+        }
+ # pobranie czlonkow grup z 1  
+        $members2 = $group2.members
+#sprawdzenie ilosci czlonkow grup
+          Write-Host  "[Line 315] Members in ev2 for group $groupID" 
+        if($members2.count -eq 0){
+            Write-Host  "[Line 317] No members"
+        }else{
+            $members2 | foreach-Object {Write-Host "[Line 319] - '$($_.bpsId)'"}
+                  #maybe tak   $members1 | foreach-Object {Write-Host " - $($_.name) <$($_.email)> [$($_.bpsId)]"}
+         #   $members2 | foreach-Object {$_ | ConvertTo-Json -Depth 3 }
+        
+        }
+
+         #normalizacja danych 
+        $normalizedMembers1 = $members1 | ForEach-Object { $_.bpsId.ToString().Trim().ToLower() }
+        $normalizedMembers2 = $members2 | ForEach-Object { $_.bpsId.ToString().Trim().ToLower() }
+
+        $onlyIn1env = $normalizedMembers1 | Where-Object {$_ -notin $normalizedMembers2}
+        
+        $onlyIn2env = $normalizedMembers2 | Where-Object {$_ -notin $normalizedMembers1}
+
+        #lece przez każdy element w $normalizedMembers1.
+
+        #Sprawdzam czy nie występuje w $normalizedMembers2.
+
+        #Wynik: lista członków, którzy są tylko w środowisku 1 (env1), a nie ma ich w env2.
+        if($onlyIn1env.count -eq 0 -and $onlyIn2env.count -eq 0){
+            Write-Host "[Line 339] Group $groupID has identical members"
+        }else{
+             Write-Host "`n [Line 341] Differences in $groupID"
+        
+             if($onlyIn1env.count -gt 0 ){  
+                Write-Host "[Line 344] - Only in Env1:"
+                forEach($bpsId in $onlyIn1env){
+                  #  Write-Host "[Line 346] Test czlonek grupy" $bpsId
+               # Write-Host "Test members in Env1 (full object):"
+             #   $members1 | ForEach-Object { $_ | ConvertTo-Json -Depth 3 }
+
+                    $member =  $members1 | Where-Object {$_.bpsId.ToString().Trim().ToLower() -eq $bpsId }   # tu cos jest  i do poprawy 
+                    if($member){
+                   # Write-Host "Wypisanie memeber $member"
+                     $name = if ($member.name) { $member.name } else { "?" }
+                    $email = if ($member.email) { $member.email } else { "?" }
+               #  Write-Host "   -$($member.name) <$($member.email)> [$($member.bpsId)]" 
+                     #   Write-Host "   - $name <$email> [$($member.bpsId)]"
+                   #     Write-Host "   - [$($member.bpsId)]"
+ 
+                 $result += [PSCustomObject]@{
+                        bpsGroupId   = $groupID
+                        bpsMemberId  = $member.bpsId
+                        MemberName =    $name
+                        MemberEmail =   $email
+                        environment  = "Env1"
+
+                 }
+                    }else{
+                        Write-Host "[Line 368] NO MATCH FOUND for $bpsId in Env1"
+                    }
+               
+                }
+             #  $members1 | Where-Object {$_.bpsId.trim().ToLower -in $onlyIn1env } | ForEach-Object {
+             #    Write-Host "   -$($_.name) <$($_.email)> [$($_.bpsId)]" }
+            
+             }
+
+             if($onlyIn2env.count -gt 0 ){  
+                Write-Host "[Line 378] - Only in Env2:"
+            forEach($bpsId in $onlyIn2env){
+                    $member =  $members2 | Where-Object {$_.bpsId.ToString().Trim().ToLower() -eq $bpsId } 
+                    if($member){
+                     $name = if ($member.name) { $member.name } else { "?" }
+                        $email = if ($member.email) { $member.email } else { "?" }
+              #  Write-Host "   - $name <$email> [$($member.bpsId)]"
+                Write-Host "   - [$($member.bpsId)]"
+                 $result2 += [PSCustomObject]@{
+                        bpsGroupId   = $groupID
+                        bpsMemberId  = $member.bpsId
+                        MemberName =    $name
+                        MemberEmail =   $email
+                        environment  = "Env2"
+                 }
+                    }else{
+                        Write-Host "[Line 394] Not found $bpsId inEv2"
+                    }
+                # Write-Host "   -$($member.name) <$($member.email)> [$($member.bpsId)]" 
+               
+                }
+
+             #   $members2 | Where-Object {$_.bpsId.trim().ToLower -in $onlyIn2env } | ForEach-Object {
+              #   Write-Host "   -$($_.name) <$($_.email)> [$($_.bpsId)]" }
+              
+             }
+        }
+    }
+    return @{
+        env1 = $result
+        env2 = $result2
+     }
+}
+
+
+
+$comp = Compare-Group-Members -groupMemberenv1 $groupMemberenv1 -groupMemberenv2 $groupMemberenv2
+
+$env1 = $comp.env1
+$env2 = $comp.env2
+
+if($env1){Write-Host "[Line 419]" $env1 } #| Format-Table}
+If($env2) {Write-Host "[Line 420]" $env2 | Format-Table}
+
+function Get-User{
+     param(
+     [string]$baseUrl,
+     [string]$clientId,
+     [string]$clientSecret,
+     [string]$user
+     )
+      $token = Get-AccessToken -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret
+
+      if (-not $token) {
+        Write-Error "[Line 432] No token"
+        return
+    }
+
+    $headers = @{
+    Authorization = "Bearer $token"
+    "Content-Type" = "application/json"
+    }
+
+    
+            $userUrl = "$baseUrl/api/data/v6.0/admin/user?bpsId=$user"
+
+            try{
+          return ( Invoke-RestMethod -Method Get -Uri $userUrl -Headers $headers )
+            
+        }catch{
+                Write-Host "[Line 448] $user not found in env2"
+                # Write-Error "[Line 445] Error : $_"
+        return $null
+}
+}
+function Add-User{
+    param(
+     [string]$baseUrl,
+     [string]$clientId,
+     [string]$clientSecret,
+     [string]$userID,
+     [string]$userName,
+     [string]$userEmail
+     )
+      $token = Get-AccessToken -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret
+
+      if (-not $token) {
+        Write-Error "[Line 465] No token"
+        return
+    }
+
+    $headers = @{
+    Authorization = "Bearer $token"
+    "Content-Type" = "application/json"
+    }
+        $userCreateUrl = "$baseUrl/api/data/v6.0/admin/users"
+    $body = @{
+            bpsId = $userID
+            name = $userName
+            email = $userEmail
+    }| ConvertTo-Json -Depth 3
+       Write-Host "[Line 479] $body" 
+            try{
+            Invoke-RestMethod -Method Post -Uri $userCreateUrl -Headers $headers -body $body 
+            
+        }catch{
+                 Write-Error "[Line 484] Error : $_"
+        return $null
+}
+}
+function Add-Member-To-BpsGroup{
+     param(
+     [string]$baseUrl,
+     [string]$clientId,
+     [string]$clientSecret,
+     [array]$groupMember
+     )
+      $token = Get-AccessToken -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret
+
+      if (-not $token) {
+        Write-Error "[Line 498] No token"
+        return
+    }
+
+    $headers = @{
+    Authorization = "Bearer $token"
+    "Content-Type" = "application/json"
+    }
+    $memberList = @{}
+    foreach($group in $groupMember){
+        $groupID = $group.bpsGroupId
+        $memberId = $group.bpsMemberId
+        $memberName = $group.MemberName
+        $memberEmail = $group.MemberEmail
+        Write-Host  "[Line 512] Member info $memberId"
+        #sprawdzenie czy memeber istniejes na drugim srodowisku
+        $exitsMember = Get-User -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret -user $memberId
+        #dorbic check na name bo inaczejs ie nie da a tak to sie wywali dla register app"
+          
+       # $name = $exitsMember.name
+      # Write-Host "[Line 518] $name"
+        if(-not $memberList.ContainsKey($groupID)){
+            $memberList[$groupID] = @()
+        }
+        
+        if(-not $exitsMember){
+           # Write-Host "$memberId not exist in  env2"
+            $userInput = Read-Host "[Line 525] Do you want to create this user as bpsUser? (Y/N)"
+            if($userInput -eq "Y"){
+            
+             Add-User -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret -userID $memberId -userName $memberName -userEmail $memberEmail
+             $maxRetries = 5
+            $retryCount = 0
+            do{
+            Write-Host "[Line 532] Synchronizing user: $memberId"
+            Start-Sleep -Seconds 7
+            $exitsMember  = Get-User -baseUrl $baseUrl -clientId $clientId -clientSecret $clientSecret -user $memberId
+            $retryCount++
+            }while(-not $exitsMember -and $retryCount -lt $maxRetries)
+             $memberList[$groupID] +=[PSCustomObject]@{
+             bpsId =$memberId
+            }
+            Write-Host "[Line 540] User: $memberId synchronized"
+            }
+        }elseif($exitsMember -and $exitsMember.name.EndsWith("- Registered App")){
+         Write-Host "[line 543] Only account of type User or AdGroup can be a member of BPS group skipping add for member $memberId" -ForegroundColor Yellow   
+        }else{
+            $memberList[$groupID] +=[PSCustomObject]@{
+             bpsId =$memberId
+            }
+        }
+        
+    }
+    Write-Host "[Line 551] MemberList $memberList"
+        foreach($groupID in $memberList.Keys){
+        $body =@{
+            members = $memberList[$groupID]
+            } | ConvertTo-Json -Depth 3
+
+            $memberUrl = "$baseUrl/api/data/v6.0/admin/groups/$groupID/members/add"
+
+            try{
+            #Write-Host "Body: $body"  
+            Invoke-RestMethod -Method Post -Uri $memberUrl -Headers $headers -Body $body
+            foreach($member in $memberList[$groupID]){
+                Write-Host "[Line 563] Added members $member to group $groupID"
+            }
+            
+        }catch{
+             foreach($member in $memberList[$groupID]){
+                 Write-Error "[Line 568] Problem with $member for group $groupId : $_"
+            }
+        return $null
+    }
+    }  
+
+}
+if($userInputM -eq 'Y'){
+$userInput = Read-Host "[Line 576] Do you want to add missing member to group? (Y/N)"
+if($userInput -eq "Y"){
+     $groupMemberenv2  = Add-Member-To-BpsGroup -baseUrl $baseUrl1 -clientId $CLIENT_ID1 -clientSecret $CLIENT_SECRET1  -groupMember $env1
+    }else{
+        Write-Host "[Line 580] Group member creation was skipped"
+    }
+}
+
+  
